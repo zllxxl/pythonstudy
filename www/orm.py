@@ -85,19 +85,19 @@ class Field(object):
 # 创建字符串型列
 class StringField(Field):
     def __init__(self, name=None, primary_key=False, default=None, ddl='varchar(100)'):
-        super.__init__(name, ddl, primary_key, default)
+        super().__init__(name, ddl, primary_key, default)
 
 
 # 创建布尔型列
 class BooleanField(Field):
     def __init__(self, name=None, default=None):
-        super.__init__(name, 'bool', False, default)
+        super().__init__(name, 'bool', False, default)
 
 
 # 创建int类列
 class IntegerField(Field):
     def __init__(self, name=None, primary_key=False, default=0):
-        super.__init__(name, 'bigint', primary_key, default)
+        super().__init__(name, 'bigint', primary_key, default)
 
 
 # 创建float型列
