@@ -65,7 +65,7 @@ def create_args_string(num):
     L = []
     for n in range(num):
         L.append('?')
-    return ','.join(L)
+    return ', '.join(L)
 
 
 # 创建列属性
@@ -90,8 +90,8 @@ class StringField(Field):
 
 # 创建布尔型列
 class BooleanField(Field):
-    def __init__(self, name=None, default=None):
-        super().__init__(name, 'bool', False, default)
+    def __init__(self, name=None, default=False):
+        super().__init__(name, 'boolean', False, default)
 
 
 # 创建int类列
@@ -139,7 +139,7 @@ class ModelMetaclass(type):
             raise RuntimeError('Primary key not found')
         for k in mappings.keys():
             attrs.pop(k)
-        escaped_fields = list(map(lambda f: '%s' % f, fields))
+        escaped_fields = list(map(lambda f: '`%s`' % f, fields))
         attrs['__mappings__'] = mappings
         attrs['__table__'] = tableName
         attrs['__primary_key__'] = primaryKey
@@ -159,7 +159,7 @@ class Model(dict, metaclass=ModelMetaclass):
         super(Model, self).__init__(**kw)
 
     # 获取属性
-    def __getatter__(self, key):
+    def __getattr__(self, key):
         try:
             return self[key]
         except KeyError:
@@ -179,14 +179,14 @@ class Model(dict, metaclass=ModelMetaclass):
         if value is None:
             field = self.__mappings__[key]
             if field.default is not None:
-                value - field.default() if callable(field.default) else field.default
+                value = field.default() if callable(field.default) else field.default
                 logging.debug('using default value for %s: %s' % (key, str(value)))
                 setattr(self, key, value)
         return value
 
     # 查询表所有数据
     @classmethod
-    async def findall(cls, where=None, args=None, **kw):
+    async def findAll(cls, where=None, args=None, **kw):
         ' find objects by where clause. '
         sql = [cls.__select__]
         if where:
@@ -199,8 +199,8 @@ class Model(dict, metaclass=ModelMetaclass):
             sql.append('order by')
             sql.append(orderBy)
         limit = kw.get('limit', None)
-        if limit:
-            sql.append('limit', None)
+        if limit is not None:
+            sql.append('limit')
             if isinstance(limit, int):
                 sql.append('?')
                 args.append(limit)
@@ -214,9 +214,9 @@ class Model(dict, metaclass=ModelMetaclass):
 
     # 通过number查询
     @classmethod
-    async def finNumber(cls, selectField, where=None, args=None):
+    async def findNumber(cls, selectField, where=None, args=None):
         ' find number by select and where. '
-        sql = ['select %s _num_ from %s' % (selectField, cls.__table__)]
+        sql = ['select %s _num_ from `%s`' % (selectField, cls.__table__)]
         if where:
             sql.append('where')
             sql.append(where)
@@ -230,7 +230,7 @@ class Model(dict, metaclass=ModelMetaclass):
     async def find(cls, pk):
         ' find object by primary key. '
         rs = await select('%s where `%s`=?' % (cls.__select__, cls.__primary_key__), [pk], 1)
-        if len(rs) == 1:
+        if len(rs) == 0:
             return None
         return cls(**rs[0])
 
