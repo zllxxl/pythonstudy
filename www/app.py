@@ -9,6 +9,7 @@ from aiohttp import web
 from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
 from coroweb import add_routes, add_static
+from handlers import COOKIE_NAME, cookies2user
 logging.basicConfig(level=logging.INFO)
 
 
@@ -93,6 +94,22 @@ async def response_factory(app, handler):
     return response
 
 
+async def auth_factory(app, handler):
+    async def auth(request):
+        logging.info('check user: %s %s' % (request.method, request.path))
+        request.__user__ = None
+        cookie_str = request.cookies.get(COOKIE_NAME)
+        if cookie_str:
+            user = await cookies2user(cookie_str)
+            if user:
+                logging.info('set current user: %s' % user.email)
+                request.__user__ = user
+        if request.path.startswith('/manage/') and (request.__user__ is None or not request.__user__.admin):
+            return web.HTTPFound('/signin')
+        return await handler(request)
+    return auth
+
+
 def datetime_filter(t):
     delta = int(time.time() - t)
     if delta < 60:
@@ -112,7 +129,7 @@ async def init(loop):
     app = web.Application(
         loop=loop,
         middlewares=[
-            logger_factory, response_factory
+            logger_factory, response_factory, auth_factory
         ]
     )
     init_jinja2(app, filters=dict(datetime=datetime_filter))
